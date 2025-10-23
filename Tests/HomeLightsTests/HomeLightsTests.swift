@@ -1,11 +1,11 @@
 import Testing
 
-@testable import SPMTemplate
+@testable import HomeLights
 
-struct SPMTemplateTests {
+struct HomeLightsTests {
   @Test("greet returns greeting for provided name")
   func greet() async throws {
-    let sut = SPMTemplate()
+    let sut = HomeLights()
     #expect(sut.greet(name: "World") == "Hello, World!")
   }
 }

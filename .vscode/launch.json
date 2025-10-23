@@ -5,18 +5,18 @@
       "type": "swift",
       "request": "launch",
       "args": [],
-      "cwd": "${workspaceFolder:spm-template}",
+      "cwd": "${workspaceFolder:home-lights}",
       "name": "Release Playground",
-      "program": "${workspaceFolder:spm-template}/.build/release/Playground",
+      "program": "${workspaceFolder:home-lights}/.build/release/Playground",
       "preLaunchTask": "swift: Build Release Playground"
     },
     {
       "type": "swift",
       "request": "launch",
       "args": [],
-      "cwd": "${workspaceFolder:spm-template}",
+      "cwd": "${workspaceFolder:home-lights}",
       "name": "Debug Playground",
-      "program": "${workspaceFolder:spm-template}/.build/debug/Playground",
+      "program": "${workspaceFolder:home-lights}/.build/debug/Playground",
       "preLaunchTask": "swift: Build Debug Playground"
     }
   ]

@@ -2,36 +2,41 @@
 import PackageDescription
 
 let package = Package(
-  name: "spm-template",
+  name: "home-lights",
   defaultLocalization: "en",
   platforms: [
-    .iOS(.v17),
-    .macOS(.v13),
-    .tvOS(.v17),
-    .watchOS(.v10),
+    .macCatalyst(.v18)
   ],
   products: [
     .library(
-      name: "SPMTemplate",
-      targets: ["SPMTemplate"]
+      name: "HomeLights",
+      targets: ["HomeLights"]
     ),
     .executable(
       name: "Playground",
       targets: ["Playground"]
     ),
   ],
-  dependencies: [],
+  dependencies: [
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0")
+  ],
   targets: [
     .target(
-      name: "SPMTemplate"
+      name: "HomeLights",
+      linkerSettings: [
+        .linkedFramework("HomeKit")
+      ]
     ),
     .executableTarget(
       name: "Playground",
-      dependencies: ["SPMTemplate"]
+      dependencies: [
+        "HomeLights",
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+      ]
     ),
     .testTarget(
-      name: "SPMTemplateTests",
-      dependencies: ["SPMTemplate"]
+      name: "HomeLightsTests",
+      dependencies: ["HomeLights"]
     ),
   ]
 )
