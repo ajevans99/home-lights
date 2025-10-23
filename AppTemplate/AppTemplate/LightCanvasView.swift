@@ -65,10 +65,11 @@ struct LightCanvasView: View {
               if let light = allLights.first(where: { $0.name == lightName }) {
                 DraggableLightView(
                   light: light,
-                  position: lightPositions[lightName] ?? CGPoint(
-                    x: geometry.size.width / 2,
-                    y: geometry.size.height / 2
-                  ),
+                  position: lightPositions[lightName]
+                    ?? CGPoint(
+                      x: geometry.size.width / 2,
+                      y: geometry.size.height / 2
+                    ),
                   canvasSize: canvasSize,
                   onPositionChange: { newPosition in
                     lightPositions[lightName] = newPosition
@@ -238,7 +239,12 @@ struct FreePlacementLayout: Layout {
     proposal.replacingUnspecifiedDimensions()
   }
 
-  func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+  func placeSubviews(
+    in bounds: CGRect,
+    proposal: ProposedViewSize,
+    subviews: Subviews,
+    cache: inout ()
+  ) {
     for (index, subview) in subviews.enumerated() {
       let size = subview.sizeThatFits(.unspecified)
 

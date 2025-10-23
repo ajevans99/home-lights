@@ -91,7 +91,8 @@ struct ContentView: View {
             "No devices found. Make sure HomeKit is set up and you've granted access."
         } else {
           // Default to primary home
-          self.selectedHome = discoveredDevices.homes.first(where: { $0.isPrimary })
+          self.selectedHome =
+            discoveredDevices.homes.first(where: { $0.isPrimary })
             ?? discoveredDevices.homes.first
         }
       }

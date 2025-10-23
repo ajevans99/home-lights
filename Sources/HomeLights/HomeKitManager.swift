@@ -148,7 +148,8 @@ private class DiscoveryDelegate: NSObject, HMHomeManagerDelegate {
     }
   }
 
-  private func extractLightColor(from accessory: HMAccessory) -> HomeKitManager.DiscoveryResult.HomeInfo
+  private func extractLightColor(from accessory: HMAccessory) -> HomeKitManager.DiscoveryResult
+    .HomeInfo
     .AccessoryInfo.LightColor?
   {
     guard accessory.category.categoryType == HMAccessoryCategoryTypeLightbulb else {
