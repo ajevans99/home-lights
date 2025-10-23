@@ -51,6 +51,13 @@ struct HomeKitManager: @unchecked Sendable {
         let category: String
         let isReachable: Bool
         let services: [String]
+        let lightColor: LightColor?
+
+        struct LightColor {
+          let hue: Double?  // 0-360
+          let saturation: Double?  // 0-100
+          let brightness: Double?  // 0-100
+        }
       }
     }
   }
@@ -84,7 +91,8 @@ private class DiscoveryDelegate: NSObject, HMHomeManagerDelegate {
           room: accessory.room?.name,
           category: categoryName(for: accessory.category),
           isReachable: accessory.isReachable,
-          services: accessory.services.map { $0.name }
+          services: accessory.services.map { $0.name },
+          lightColor: extractLightColor(from: accessory)
         )
       }
 
@@ -95,7 +103,8 @@ private class DiscoveryDelegate: NSObject, HMHomeManagerDelegate {
             room: accessory.room?.name,
             category: categoryName(for: accessory.category),
             isReachable: accessory.isReachable,
-            services: accessory.services.map { $0.name }
+            services: accessory.services.map { $0.name },
+            lightColor: extractLightColor(from: accessory)
           )
         }
 
@@ -137,5 +146,58 @@ private class DiscoveryDelegate: NSObject, HMHomeManagerDelegate {
     case HMAccessoryCategoryTypeOther: return "Other"
     default: return "Unknown (\(category.categoryType))"
     }
+  }
+
+  private func extractLightColor(from accessory: HMAccessory) -> HomeKitManager.DiscoveryResult.HomeInfo
+    .AccessoryInfo.LightColor?
+  {
+    guard accessory.category.categoryType == HMAccessoryCategoryTypeLightbulb else {
+      return nil
+    }
+
+    // Find the lightbulb service
+    guard
+      let lightService = accessory.services.first(where: {
+        $0.serviceType == HMServiceTypeLightbulb
+      })
+    else {
+      return nil
+    }
+
+    var hue: Double?
+    var saturation: Double?
+    var brightness: Double?
+
+    // Extract hue
+    if let hueChar = lightService.characteristics.first(where: {
+      $0.characteristicType == HMCharacteristicTypeHue
+    }), let hueValue = hueChar.value as? NSNumber {
+      hue = hueValue.doubleValue
+    }
+
+    // Extract saturation
+    if let satChar = lightService.characteristics.first(where: {
+      $0.characteristicType == HMCharacteristicTypeSaturation
+    }), let satValue = satChar.value as? NSNumber {
+      saturation = satValue.doubleValue
+    }
+
+    // Extract brightness
+    if let brightnessChar = lightService.characteristics.first(where: {
+      $0.characteristicType == HMCharacteristicTypeBrightness
+    }), let brightnessValue = brightnessChar.value as? NSNumber {
+      brightness = brightnessValue.doubleValue
+    }
+
+    // Only return if we have at least one value
+    if hue != nil || saturation != nil || brightness != nil {
+      return HomeKitManager.DiscoveryResult.HomeInfo.AccessoryInfo.LightColor(
+        hue: hue,
+        saturation: saturation,
+        brightness: brightness
+      )
+    }
+
+    return nil
   }
 }

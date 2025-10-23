@@ -172,9 +172,9 @@ struct DraggableLightView: View {
     VStack(spacing: 8) {
       ZStack(alignment: .topTrailing) {
         Circle()
-          .fill(light.isReachable ? Color.yellow : Color.gray)
+          .fill(light.displayColor)
           .frame(width: 60, height: 60)
-          .shadow(color: light.isReachable ? .yellow.opacity(0.5) : .clear, radius: 10)
+          .shadow(color: light.displayColor.opacity(0.5), radius: 10)
           .overlay(
             Image(systemName: "lightbulb.fill")
               .font(.title2)

@@ -43,6 +43,13 @@ public struct DiscoveredDevices: Codable {
     public let category: String
     public let isReachable: Bool
     public let services: [String]
+    public let lightColor: LightColor?
+
+    public struct LightColor: Codable {
+      public let hue: Double?  // 0-360
+      public let saturation: Double?  // 0-100
+      public let brightness: Double?  // 0-100
+    }
   }
 
   init(from result: HomeKitManager.DiscoveryResult) {
@@ -70,5 +77,13 @@ extension DiscoveredDevices.Accessory {
     self.category = accessoryInfo.category
     self.isReachable = accessoryInfo.isReachable
     self.services = accessoryInfo.services
+    self.lightColor =
+      accessoryInfo.lightColor.map {
+        LightColor(
+          hue: $0.hue,
+          saturation: $0.saturation,
+          brightness: $0.brightness
+        )
+      }
   }
 }

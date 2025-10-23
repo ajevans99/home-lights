@@ -50,6 +50,7 @@ struct ContentView: View {
         }
       }
       .navigationTitle("Home Lights")
+      .onAppear { discoverDevices() }
       .toolbar {
         if let devices = devices, !devices.homes.isEmpty {
           ToolbarItem(placement: .primaryAction) {
@@ -144,7 +145,7 @@ struct LightRow: View {
   var body: some View {
     HStack {
       Image(systemName: "lightbulb.fill")
-        .foregroundColor(light.isReachable ? .yellow : .gray)
+        .foregroundColor(light.displayColor)
 
       VStack(alignment: .leading, spacing: 4) {
         Text(light.name)
@@ -168,6 +169,24 @@ struct LightRow: View {
         .frame(width: 8, height: 8)
     }
     .padding(.vertical, 4)
+  }
+}
+
+extension DiscoveredDevices.Accessory {
+  var displayColor: Color {
+    guard isReachable else {
+      return .gray
+    }
+
+    guard let colorInfo = lightColor else {
+      return .yellow
+    }
+
+    let hue = (colorInfo.hue ?? 60) / 360.0
+    let saturation = (colorInfo.saturation ?? 100) / 100.0
+    let brightness = (colorInfo.brightness ?? 100) / 100.0
+
+    return Color(hue: hue, saturation: saturation, brightness: brightness)
   }
 }
 
