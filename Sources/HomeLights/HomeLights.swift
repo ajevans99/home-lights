@@ -21,23 +21,23 @@ public struct HomeLights {
 // MARK: - Public Types
 
 /// Discovered HomeKit devices, exposed as a clean public interface
-public struct DiscoveredDevices {
+public struct DiscoveredDevices: Codable {
   public let homes: [Home]
   public let totalAccessories: Int
 
-  public struct Home {
+  public struct Home: Codable {
     public let name: String
     public let isPrimary: Bool
     public let rooms: [Room]
     public let accessories: [Accessory]
   }
 
-  public struct Room {
+  public struct Room: Codable {
     public let name: String
     public let accessories: [Accessory]
   }
 
-  public struct Accessory {
+  public struct Accessory: Codable {
     public let name: String
     public let room: String?
     public let category: String
