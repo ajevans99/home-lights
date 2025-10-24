@@ -1,13 +1,13 @@
 import HomeLights
 import SwiftUI
 
-let homeLights = HomeLights()
-
 struct ContentView: View {
   @State private var devices: DiscoveredDevices?
   @State private var selectedHome: DiscoveredDevices.Home?
   @State private var isDiscovering = false
   @State private var errorMessage: String?
+
+  @Environment(HomeLights.self) private var homeLights
 
   var body: some View {
     NavigationView {

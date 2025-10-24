@@ -8,6 +8,11 @@ struct LightCanvasView: View {
   @State private var selectedLights: Set<String> = []
   @State private var storage: JSONStorage?
   @State private var canvasSize: CGSize = .zero
+  @State private var selectedShow: (any LightShow)?
+  @State private var showControlPanel = true
+
+  @Environment(LightShowRegistry.self) private var lightShowRegistry
+  @Environment(HomeLights.self) private var homeLights
 
   private var allLights: [DiscoveredDevices.Accessory] {
     home.rooms.flatMap { room in
@@ -16,83 +21,105 @@ struct LightCanvasView: View {
   }
 
   var body: some View {
-    VStack {
-      // Available lights section
-      if !availableLights.isEmpty {
-        VStack(alignment: .leading, spacing: 8) {
-          Text("Available Lights")
-            .font(.headline)
-            .padding(.horizontal)
+    HStack(spacing: 0) {
+      // Main canvas area
+      VStack {
+        // Available lights section
+        if !availableLights.isEmpty {
+          VStack(alignment: .leading, spacing: 8) {
+            Text("Available Lights")
+              .font(.headline)
+              .padding(.horizontal)
 
-          ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-              ForEach(availableLights, id: \.name) { light in
-                Button(action: { addLight(light) }) {
-                  VStack(spacing: 4) {
-                    Image(systemName: "lightbulb.fill")
-                      .font(.title2)
-                      .foregroundColor(.yellow)
+            ScrollView(.horizontal, showsIndicators: false) {
+              HStack(spacing: 12) {
+                ForEach(availableLights, id: \.name) { light in
+                  Button(action: { addLight(light) }) {
+                    VStack(spacing: 4) {
+                      Image(systemName: "lightbulb.fill")
+                        .font(.title2)
+                        .foregroundColor(.yellow)
 
-                    Text(light.name)
-                      .font(.caption)
-                      .lineLimit(2)
-                      .multilineTextAlignment(.center)
+                      Text(light.name)
+                        .font(.caption)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                    }
+                    .frame(width: 80, height: 80)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(12)
                   }
-                  .frame(width: 80, height: 80)
-                  .background(Color.secondary.opacity(0.1))
-                  .cornerRadius(12)
+                  .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+              }
+              .padding(.horizontal)
+            }
+            .frame(height: 100)
+          }
+          .padding(.vertical)
+        }
+
+        Divider()
+
+        // Canvas area
+        GeometryReader { geometry in
+          ZStack {
+            Color.black.opacity(0.05)
+              .ignoresSafeArea()
+
+            FreePlacementLayout(positions: $lightPositions) {
+              ForEach(Array(selectedLights), id: \.self) { lightName in
+                if let light = allLights.first(where: { $0.name == lightName }) {
+                  DraggableLightView(
+                    light: light,
+                    position: lightPositions[lightName]
+                      ?? CGPoint(
+                        x: geometry.size.width / 2,
+                        y: geometry.size.height / 2
+                      ),
+                    canvasSize: canvasSize,
+                    onPositionChange: { newPosition in
+                      lightPositions[lightName] = newPosition
+                      savePositions()
+                    },
+                    onRemove: {
+                      removeLight(lightName)
+                    }
+                  )
+                  .lightName(lightName)
+                }
               }
             }
-            .padding(.horizontal)
           }
-          .frame(height: 100)
+          .onAppear {
+            canvasSize = geometry.size
+          }
+          .onChange(of: geometry.size) { oldValue, newValue in
+            canvasSize = newValue
+          }
         }
-        .padding(.vertical)
       }
 
-      Divider()
+      // Right control panel
+      if showControlPanel {
+        Divider()
 
-      // Canvas area
-      GeometryReader { geometry in
-        ZStack {
-          Color.black.opacity(0.05)
-            .ignoresSafeArea()
-
-          FreePlacementLayout(positions: $lightPositions) {
-            ForEach(Array(selectedLights), id: \.self) { lightName in
-              if let light = allLights.first(where: { $0.name == lightName }) {
-                DraggableLightView(
-                  light: light,
-                  position: lightPositions[lightName]
-                    ?? CGPoint(
-                      x: geometry.size.width / 2,
-                      y: geometry.size.height / 2
-                    ),
-                  canvasSize: canvasSize,
-                  onPositionChange: { newPosition in
-                    lightPositions[lightName] = newPosition
-                    savePositions()
-                  },
-                  onRemove: {
-                    removeLight(lightName)
-                  }
-                )
-                .lightName(lightName)
-              }
-            }
-          }
-        }
-        .onAppear {
-          canvasSize = geometry.size
-        }
-        .onChange(of: geometry.size) { oldValue, newValue in
-          canvasSize = newValue
-        }
+        LightShowControlPanel(
+          selectedShow: $selectedShow,
+          onApply: applyLightShow
+        )
+        .frame(width: 300)
+        .background(Color(uiColor: .systemGroupedBackground))
       }
     }
     .navigationTitle("\(home.name) Canvas")
+    .toolbar {
+      ToolbarItem(placement: .primaryAction) {
+        Button(action: { showControlPanel.toggle() }) {
+          Image(systemName: showControlPanel ? "sidebar.right" : "sidebar.right.filled")
+        }
+      }
+    }
     .task {
       setupStorage()
       loadPositions()
@@ -153,6 +180,162 @@ struct LightCanvasView: View {
     } catch {
       print("Failed to load positions: \(error)")
     }
+  }
+
+  private func applyLightShow() {
+    guard let show = selectedShow else { return }
+
+    // Apply the light show to all selected lights
+    for lightName in selectedLights {
+      guard let position = lightPositions[lightName] else { continue }
+
+      // Get color from the show for this light
+      if let hsbColor = show.color(for: lightName, at: position, time: 0) {
+        // Apply color to actual HomeKit light
+        homeLights.setLightColor(
+          accessoryName: lightName,
+          hue: hsbColor.hue,
+          saturation: hsbColor.saturation,
+          brightness: hsbColor.brightness
+        ) { success in
+          if success {
+            print("Successfully set color for \(lightName)")
+          } else {
+            print("Failed to set color for \(lightName)")
+          }
+        }
+      }
+    }
+  }
+}
+
+struct LightShowControlPanel: View {
+  @Binding var selectedShow: (any LightShow)?
+  let onApply: () -> Void
+
+  @Environment(LightShowRegistry.self) private var registry
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      // Header
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Light Shows")
+          .font(.title2)
+          .fontWeight(.bold)
+
+        Text("Select and configure light sequences")
+          .font(.caption)
+          .foregroundColor(.secondary)
+      }
+      .padding()
+
+      Divider()
+
+      // Show list
+      ScrollView {
+        VStack(spacing: 12) {
+          ForEach(registry.availableShows, id: \.id) { show in
+            LightShowCard(
+              show: show,
+              isSelected: selectedShow?.id == show.id,
+              onSelect: {
+                selectedShow = show
+              }
+            )
+          }
+        }
+        .padding()
+      }
+
+      Divider()
+
+      // Configuration area
+      if let show = selectedShow {
+        VStack(alignment: .leading, spacing: 12) {
+          Text("Configuration")
+            .font(.headline)
+
+          show.configurationView()
+
+          Spacer()
+
+          Button(action: onApply) {
+            HStack {
+              Image(systemName: "play.fill")
+              Text("Apply Light Show")
+            }
+            .frame(maxWidth: .infinity)
+          }
+          .buttonStyle(.borderedProminent)
+        }
+        .padding()
+      } else {
+        VStack {
+          Spacer()
+          Text("Select a light show to configure")
+            .font(.caption)
+            .foregroundColor(.secondary)
+          Spacer()
+        }
+        .frame(maxHeight: 200)
+      }
+    }
+  }
+}
+
+struct LightShowCard: View {
+  let show: any LightShow
+  let isSelected: Bool
+  let onSelect: () -> Void
+
+  var body: some View {
+    Button(action: onSelect) {
+      HStack(spacing: 12) {
+        Image(systemName: show.icon)
+          .font(.title2)
+          .foregroundColor(isSelected ? .white : .accentColor)
+          .frame(width: 40, height: 40)
+          .background(
+            isSelected
+              ? Color.accentColor
+              : Color.accentColor.opacity(0.1)
+          )
+          .cornerRadius(8)
+
+        VStack(alignment: .leading, spacing: 4) {
+          Text(show.name)
+            .font(.headline)
+            .foregroundColor(.primary)
+
+          Text(show.description)
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .lineLimit(2)
+        }
+
+        Spacer()
+
+        if isSelected {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundColor(.accentColor)
+        }
+      }
+      .padding()
+      .background(
+        isSelected
+          ? Color.accentColor.opacity(0.1)
+          : Color.clear
+      )
+      .cornerRadius(12)
+      .overlay(
+        RoundedRectangle(cornerRadius: 12)
+          .stroke(
+            isSelected ? Color.accentColor : Color.clear,
+            lineWidth: 2
+          )
+      )
+    }
+    .buttonStyle(.plain)
   }
 }
 
@@ -245,7 +428,7 @@ struct FreePlacementLayout: Layout {
     subviews: Subviews,
     cache: inout ()
   ) {
-    for (index, subview) in subviews.enumerated() {
+    for subview in subviews {
       let size = subview.sizeThatFits(.unspecified)
 
       // Get position from binding or use center
@@ -285,24 +468,4 @@ struct LightPositionData: Codable {
   let homeName: String
   let selectedLights: [String]
   let positions: [String: CGPoint]
-}
-
-extension CGPoint: Codable {
-  enum CodingKeys: String, CodingKey {
-    case x
-    case y
-  }
-
-  public init(from decoder: Decoder) throws {
-    let container = try decoder.container(keyedBy: CodingKeys.self)
-    let x = try container.decode(CGFloat.self, forKey: .x)
-    let y = try container.decode(CGFloat.self, forKey: .y)
-    self.init(x: x, y: y)
-  }
-
-  public func encode(to encoder: Encoder) throws {
-    var container = encoder.container(keyedBy: CodingKeys.self)
-    try container.encode(x, forKey: .x)
-    try container.encode(y, forKey: .y)
-  }
 }
