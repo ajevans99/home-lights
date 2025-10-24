@@ -42,8 +42,10 @@ struct ContentView: View {
     isDiscovering = true
     errorMessage = nil
 
-    homeLights.discoverAccessories { discoveredDevices in
-      DispatchQueue.main.async {
+    Task {
+      let discoveredDevices = await homeLights.discoverAccessories()
+      
+      await MainActor.run {
         self.devices = discoveredDevices
         self.isDiscovering = false
 

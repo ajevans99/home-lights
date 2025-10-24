@@ -1,22 +1,15 @@
 import SwiftUI
 
-struct WaveColorConfigView: View {
-  @Bindable var show: WaveColorShow
+struct RainbowWaveConfigView: View {
+  @Bindable var show: RainbowWaveShow
 
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
-      Text("Wave Color")
-        .font(.headline)
-
-      ColorPicker("Wave Color", selection: $show.waveColor)
-
-      ColorPicker("Rest Color", selection: $show.restColor)
-
       VStack(alignment: .leading, spacing: 8) {
-        Text("Duration per Light: \(String(format: "%.1f", show.durationPerLight))s")
+        Text("Speed: \(String(format: "%.1f", show.speed))s per light")
           .font(.subheadline)
 
-        Slider(value: $show.durationPerLight, in: 0.1...5.0, step: 0.1)
+        Slider(value: $show.speed, in: 0.1...3.0, step: 0.1)
       }
 
       VStack(alignment: .leading, spacing: 8) {
@@ -42,7 +35,7 @@ struct WaveColorConfigView: View {
           .foregroundColor(.secondary)
       }
 
-      Text("Lights will wave in the selected order, one at a time")
+      Text("Lights will cycle through rainbow colors continuously")
         .font(.caption)
         .foregroundColor(.secondary)
     }

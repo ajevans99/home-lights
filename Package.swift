@@ -12,10 +12,6 @@ let package = Package(
       name: "HomeLights",
       targets: ["HomeLights"]
     ),
-    .executable(
-      name: "Playground",
-      targets: ["Playground"]
-    ),
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0")
@@ -25,13 +21,6 @@ let package = Package(
       name: "HomeLights",
       linkerSettings: [
         .linkedFramework("HomeKit")
-      ]
-    ),
-    .executableTarget(
-      name: "Playground",
-      dependencies: [
-        "HomeLights",
-        .product(name: "ArgumentParser", package: "swift-argument-parser"),
       ]
     ),
     .testTarget(

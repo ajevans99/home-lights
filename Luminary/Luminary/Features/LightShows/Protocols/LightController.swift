@@ -6,7 +6,6 @@ protocol LightController {
     accessoryName: String,
     hue: Double,
     saturation: Double,
-    brightness: Double,
-    completion: @escaping (Bool) -> Void
-  )
+    brightness: Double
+  ) async -> Bool
 }

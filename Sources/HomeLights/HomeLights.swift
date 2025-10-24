@@ -10,35 +10,46 @@ public class HomeLights {
   }
 
   /// Discovers all HomeKit homes and accessories.
-  /// - Parameter completion: Called when discovery is complete
-  public func discoverAccessories(completion: @escaping (DiscoveredDevices) -> Void) {
-    homeKitManager.discover { result in
-      let devices = DiscoveredDevices(from: result)
-      completion(devices)
-    }
+  /// - Returns: The discovered devices
+  public func discoverAccessories() async -> DiscoveredDevices {
+    let result = await homeKitManager.discover()
+    return DiscoveredDevices(from: result)
   }
 
-  /// Sets the color of a specific light accessory
+  /// Sets the color of a specific light accessory with automatic debouncing.
+  ///
+  /// Multiple rapid calls to the same accessory will cancel previous pending writes,
+  /// ensuring only the most recent color values are sent to HomeKit.
+  ///
   /// - Parameters:
   ///   - accessoryName: The name of the light accessory
   ///   - hue: Hue value (0-360)
   ///   - saturation: Saturation value (0-100)
   ///   - brightness: Brightness value (0-100)
-  ///   - completion: Called when the operation completes with success status
+  /// - Returns: True if the operation succeeded, false otherwise
   public func setLightColor(
     accessoryName: String,
     hue: Double,
     saturation: Double,
-    brightness: Double,
-    completion: @escaping (Bool) -> Void
-  ) {
-    homeKitManager.setLightColor(
+    brightness: Double
+  ) async -> Bool {
+    await homeKitManager.setLightColor(
       accessoryName: accessoryName,
       hue: hue,
       saturation: saturation,
-      brightness: brightness,
-      completion: completion
+      brightness: brightness
     )
+  }
+
+  /// Cancel all pending light color writes across all accessories.
+  public func cancelAllWrites() async {
+    await homeKitManager.cancelAllWrites()
+  }
+
+  /// Cancel pending writes for a specific accessory.
+  /// - Parameter accessoryName: The name of the accessory
+  public func cancelWrites(for accessoryName: String) async {
+    await homeKitManager.cancelWrites(for: accessoryName)
   }
 }
 

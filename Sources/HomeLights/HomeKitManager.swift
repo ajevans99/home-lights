@@ -3,54 +3,98 @@ import Foundation
 
 /// Internal wrapper for HomeKit functionality to prevent HomeKit abstractions from leaking.
 /// This struct encapsulates all HomeKit-specific logic and provides a clean interface.
+///
+/// Light color writes are automatically debounced using `LightWriteQueue` to prevent
+/// HomeKit request buildup when users rapidly adjust colors via UI controls.
 struct HomeKitManager: @unchecked Sendable {
   private let homeManager: HMHomeManager
+  private let writeQueue: LightWriteQueue
 
-  init() {
+  /// Creates a new HomeKit manager with optional debounce configuration
+  /// - Parameter debounceInterval: Time to wait before executing light color writes (default: 100ms)
+  init(debounceInterval: Duration = .milliseconds(100)) {
     self.homeManager = HMHomeManager()
+    self.writeQueue = LightWriteQueue(debounceInterval: debounceInterval)
   }
 
   /// Discovers and lists all homes, rooms, and accessories.
-  /// - Parameter completion: Called when discovery is complete with the discovered items
-  func discover(completion: @escaping (DiscoveryResult) -> Void) {
-    // HomeKit loads asynchronously, so we need to wait for it to be ready
-    let delegate = DiscoveryDelegate { result in
-      completion(result)
+  /// - Returns: The discovered homes and accessories
+  func discover() async -> DiscoveryResult {
+    await withCheckedContinuation { continuation in
+      let delegate = DiscoveryDelegate { result in
+        continuation.resume(returning: result)
+      }
+
+      homeManager.delegate = delegate
+
+      // Keep the delegate alive
+      objc_setAssociatedObject(
+        homeManager,
+        "delegate",
+        delegate,
+        .OBJC_ASSOCIATION_RETAIN_NONATOMIC
+      )
     }
-
-    homeManager.delegate = delegate
-
-    // Keep the delegate alive
-    objc_setAssociatedObject(
-      homeManager,
-      "delegate",
-      delegate,
-      .OBJC_ASSOCIATION_RETAIN_NONATOMIC
-    )
   }
 
-  /// Sets the color of a specific light accessory
+  /// Sets the color of a specific light accessory with automatic debouncing.
+  ///
+  /// Multiple rapid calls to the same accessory will cancel previous pending writes,
+  /// ensuring only the most recent color values are sent to HomeKit. This prevents
+  /// request queue buildup and improves responsiveness.
+  ///
+  /// Example usage with a color picker:
+  /// ```swift
+  /// // These rapid calls will be debounced - only the last color is sent
+  /// await manager.setLightColor(accessoryName: "Bedroom", hue: 0, saturation: 100, brightness: 100)
+  /// await manager.setLightColor(accessoryName: "Bedroom", hue: 60, saturation: 100, brightness: 100)
+  /// await manager.setLightColor(accessoryName: "Bedroom", hue: 120, saturation: 100, brightness: 100)
+  /// // Only hue: 120 will be sent after the debounce interval
+  /// ```
+  ///
   /// - Parameters:
   ///   - accessoryName: The name of the light accessory
   ///   - hue: Hue value (0-360)
   ///   - saturation: Saturation value (0-100)
   ///   - brightness: Brightness value (0-100)
-  ///   - completion: Called when the operation completes with success status
+  /// - Returns: True if the operation succeeded, false otherwise
   func setLightColor(
     accessoryName: String,
     hue: Double,
     saturation: Double,
-    brightness: Double,
-    completion: @escaping (Bool) -> Void
-  ) {
+    brightness: Double
+  ) async -> Bool {
+    await writeQueue.queueWrite(
+      accessoryName: accessoryName,
+      hue: hue,
+      saturation: saturation,
+      brightness: brightness
+    ) { [homeManager] hue, saturation, brightness in
+      await self.performLightColorWrite(
+        homeManager: homeManager,
+        accessoryName: accessoryName,
+        hue: hue,
+        saturation: saturation,
+        brightness: brightness
+      )
+    }
+  }
+
+  /// Performs the actual HomeKit write operation
+  private func performLightColorWrite(
+    homeManager: HMHomeManager,
+    accessoryName: String,
+    hue: Double,
+    saturation: Double,
+    brightness: Double
+  ) async -> Bool {
     // Find the accessory across all homes
     guard
       let accessory = homeManager.homes.flatMap({ $0.accessories }).first(where: {
         $0.name == accessoryName
       })
     else {
-      completion(false)
-      return
+      return false
     }
 
     // Find the lightbulb service
@@ -59,16 +103,14 @@ struct HomeKitManager: @unchecked Sendable {
         $0.serviceType == HMServiceTypeLightbulb
       })
     else {
-      completion(false)
-      return
+      return false
     }
 
     if hue > 360 || hue < 0 || saturation > 100 || saturation < 0 || brightness > 100
       || brightness < 0
     {
       print("Invalid color values provided! \(hue) H, \(saturation) S, \(brightness) B")
-      completion(false)
-      return
+      return false
     }
 
     // Get characteristic references
@@ -82,44 +124,68 @@ struct HomeKitManager: @unchecked Sendable {
       $0.characteristicType == HMCharacteristicTypeBrightness
     })
 
-    // Write all characteristics simultaneously using DispatchGroup
-    // This is the recommended approach - HomeKit will batch them together
-    let group = DispatchGroup()
-    var errors: [Error] = []
-
-    if let hueChar = hueChar {
-      group.enter()
-      hueChar.writeValue(hue) { error in
-        if let error = error {
-          errors.append(error)
+    // Write all characteristics simultaneously using async/await
+    // HomeKit will batch them together when written concurrently
+    await withTaskGroup(of: Error?.self) { group in
+      if let hueChar = hueChar {
+        group.addTask {
+          await withCheckedContinuation { continuation in
+            hueChar.writeValue(hue) { error in
+              continuation.resume(returning: error)
+            }
+          }
         }
-        group.leave()
       }
-    }
 
-    if let satChar = satChar {
-      group.enter()
-      satChar.writeValue(saturation) { error in
-        if let error = error {
-          errors.append(error)
+      if let satChar = satChar {
+        group.addTask {
+          await withCheckedContinuation { continuation in
+            satChar.writeValue(saturation) { error in
+              continuation.resume(returning: error)
+            }
+          }
         }
-        group.leave()
       }
-    }
 
-    if let brightnessChar = brightnessChar {
-      group.enter()
-      brightnessChar.writeValue(brightness) { error in
-        if let error = error {
-          errors.append(error)
+      if let brightnessChar = brightnessChar {
+        group.addTask {
+          await withCheckedContinuation { continuation in
+            brightnessChar.writeValue(brightness) { error in
+              continuation.resume(returning: error)
+            }
+          }
         }
-        group.leave()
       }
+
+      // Check if any errors occurred
+      for await error in group {
+        if error != nil {
+          return false
+        }
+      }
+
+      return true
     }
 
-    group.notify(queue: .main) {
-      completion(errors.isEmpty)
-    }
+    return true
+  }
+
+  /// Cancel all pending light color writes across all accessories.
+  ///
+  /// Use this when you need to stop all in-flight color changes, such as when
+  /// the user navigates away from a control screen or when shutting down.
+  func cancelAllWrites() async {
+    await writeQueue.cancelAll()
+  }
+
+  /// Cancel pending writes for a specific accessory.
+  ///
+  /// Use this to stop color changes for a single light without affecting other
+  /// accessories, such as when hiding controls for one specific light.
+  ///
+  /// - Parameter accessoryName: The name of the accessory
+  func cancelWrites(for accessoryName: String) async {
+    await writeQueue.cancel(accessoryName: accessoryName)
   }
 
   /// Result of HomeKit discovery

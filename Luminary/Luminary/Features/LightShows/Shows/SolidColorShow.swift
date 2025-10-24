@@ -29,17 +29,17 @@ class SolidColorShow: LightShow {
       for (lightName, _) in lights {
         onColorUpdate(lightName, hsbColor)
 
-        controller.setLightColor(
+        let success = await controller.setLightColor(
           accessoryName: lightName,
           hue: hsbColor.hue,
           saturation: hsbColor.saturation,
           brightness: hsbColor.brightness
-        ) { success in
-          if success {
-            print("Successfully set color for \(lightName)")
-          } else {
-            print("Failed to set color for \(lightName)")
-          }
+        )
+
+        if success {
+          print("Successfully set color for \(lightName)")
+        } else {
+          print("Failed to set color for \(lightName)")
         }
       }
     }

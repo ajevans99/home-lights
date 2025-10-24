@@ -40,12 +40,12 @@ class WaveColorShow: LightShow, SequencedLightShow {
       // Set all lights to rest color initially
       for lightName in sequence {
         onColorUpdate(lightName, restHSB)
-        controller.setLightColor(
+        _ = await controller.setLightColor(
           accessoryName: lightName,
           hue: restHSB.hue,
           saturation: restHSB.saturation,
           brightness: restHSB.brightness
-        ) { _ in }
+        )
       }
 
       try? await Task.sleep(for: .seconds(0.5))
@@ -55,27 +55,26 @@ class WaveColorShow: LightShow, SequencedLightShow {
         guard !Task.isCancelled else { break }
 
         onColorUpdate(lightName, waveHSB)
-        controller.setLightColor(
+        let success = await controller.setLightColor(
           accessoryName: lightName,
           hue: waveHSB.hue,
           saturation: waveHSB.saturation,
           brightness: waveHSB.brightness
-        ) { success in
-          if success {
-            print("Wave hit \(lightName)")
-          }
+        )
+        if success {
+          print("Wave hit \(lightName)")
         }
 
         try? await Task.sleep(for: .seconds(durationPerLight))
 
         guard !Task.isCancelled else { break }
         onColorUpdate(lightName, restHSB)
-        controller.setLightColor(
+        _ = await controller.setLightColor(
           accessoryName: lightName,
           hue: restHSB.hue,
           saturation: restHSB.saturation,
           brightness: restHSB.brightness
-        ) { _ in }
+        )
       }
     }
   }

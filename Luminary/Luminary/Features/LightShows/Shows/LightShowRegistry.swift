@@ -14,6 +14,13 @@ class LightShowRegistry {
     availableShows = [
       SolidColorShow(),
       WaveColorShow(),
+      RainbowWaveShow(),
+      ColorPulseShow(),
+      GradientFlowShow(),
+      StrobeShow(),
+      TwinkleShow(),
+      FireEffectShow(),
+      OceanWavesShow(),
     ]
   }
 
