@@ -63,64 +63,62 @@ struct HomeKitManager: @unchecked Sendable {
       return
     }
 
-    // Collect all write operations
-    var writeOperations: [() -> Void] = []
-    let dispatchGroup = DispatchGroup()
-    var hadError = false
+    if hue > 360 || hue < 0 || saturation > 100 || saturation < 0 || brightness > 100
+      || brightness < 0
+    {
+      print("Invalid color values provided! \(hue) H, \(saturation) S, \(brightness) B")
+      completion(false)
+      return
+    }
 
-    // Set hue
-    if let hueChar = lightService.characteristics.first(where: {
+    // Get characteristic references
+    let hueChar = lightService.characteristics.first(where: {
       $0.characteristicType == HMCharacteristicTypeHue
-    }) {
-      dispatchGroup.enter()
-      writeOperations.append {
-        hueChar.writeValue(NSNumber(value: hue)) { error in
-          if error != nil {
-            hadError = true
-          }
-          dispatchGroup.leave()
-        }
-      }
-    }
-
-    // Set saturation
-    if let satChar = lightService.characteristics.first(where: {
+    })
+    let satChar = lightService.characteristics.first(where: {
       $0.characteristicType == HMCharacteristicTypeSaturation
-    }) {
-      dispatchGroup.enter()
-      writeOperations.append {
-        satChar.writeValue(NSNumber(value: saturation)) { error in
-          if error != nil {
-            hadError = true
-          }
-          dispatchGroup.leave()
-        }
-      }
-    }
-
-    // Set brightness
-    if let brightnessChar = lightService.characteristics.first(where: {
+    })
+    let brightnessChar = lightService.characteristics.first(where: {
       $0.characteristicType == HMCharacteristicTypeBrightness
-    }) {
-      dispatchGroup.enter()
-      writeOperations.append {
-        brightnessChar.writeValue(NSNumber(value: brightness)) { error in
-          if error != nil {
-            hadError = true
-          }
-          dispatchGroup.leave()
+    })
+
+    // Write all characteristics simultaneously using DispatchGroup
+    // This is the recommended approach - HomeKit will batch them together
+    let group = DispatchGroup()
+    var errors: [Error] = []
+
+    if let hueChar = hueChar {
+      group.enter()
+      hueChar.writeValue(hue) { error in
+        if let error = error {
+          errors.append(error)
         }
+        group.leave()
       }
     }
 
-    // Execute all write operations
-    for operation in writeOperations {
-      operation()
+    if let satChar = satChar {
+      group.enter()
+      satChar.writeValue(saturation) { error in
+        if let error = error {
+          errors.append(error)
+        }
+        group.leave()
+      }
     }
 
-    // Wait for all operations to complete
-    dispatchGroup.notify(queue: .main) {
-      completion(!hadError)
+    if let brightnessChar = brightnessChar {
+      group.enter()
+      brightnessChar.writeValue(brightness) { error in
+        if let error = error {
+          errors.append(error)
+        }
+        group.leave()
+      }
+    }
+
+    group.notify(queue: .main) {
+      completion(errors.isEmpty)
     }
   }
 

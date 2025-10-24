@@ -291,7 +291,7 @@ struct LightShowControlPanel: View {
           show.configurationView()
 
           // Show sequence preview for sequenced shows
-          if let sequencedShow = show as? SequencedLightShow, !lightPositions.isEmpty {
+          if let sequencedShow = show as? (any SequencedLightShow), !lightPositions.isEmpty {
             DisclosureGroup(
               isExpanded: $showSequenceExpanded,
               content: {

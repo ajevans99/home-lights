@@ -2,7 +2,7 @@ import HomeLights
 import SwiftUI
 
 @main
-struct AppTemplateApp: App {
+struct LuminaryApp: App {
   @State private var homeLights = HomeLights()
   @State private var lightShowRegistry = LightShowRegistry()
 

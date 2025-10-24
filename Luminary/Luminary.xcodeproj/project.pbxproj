@@ -11,14 +11,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		25FE48692E7DF1890045C21B /* AppTemplate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AppTemplate.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CA9BA0C926AB2E1E0061168A /* spmtemplate */ = {isa = PBXFileReference; lastKnownFileType = folder; name = spmtemplate; path = ..; sourceTree = "<group>"; };
+		25FE48692E7DF1890045C21B /* Luminary.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luminary.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA9BA0C926AB2E1E0061168A /* spmtemplate */ = {isa = PBXFileReference; lastKnownFileType = folder; name = home-lights; path = ..; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		25FE486B2E7DF1890045C21B /* AppTemplate */ = {
+		25FE486B2E7DF1890045C21B /* Luminary */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AppTemplate;
+			path = Luminary;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -45,7 +45,7 @@
 		25FE48602E7DF1890045C21B = {
 			isa = PBXGroup;
 			children = (
-				25FE486B2E7DF1890045C21B /* AppTemplate */,
+				25FE486B2E7DF1890045C21B /* Luminary */,
 				CA9BA0C926AB2E1E0061168A /* spmtemplate */,
 				25EE788E2EAAC3AF00665C2C /* Frameworks */,
 				25FE486A2E7DF1890045C21B /* Products */,
@@ -55,7 +55,7 @@
 		25FE486A2E7DF1890045C21B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				25FE48692E7DF1890045C21B /* AppTemplate.app */,
+				25FE48692E7DF1890045C21B /* Luminary.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -63,9 +63,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		25FE48682E7DF1890045C21B /* AppTemplate */ = {
+		25FE48682E7DF1890045C21B /* Luminary */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 25FE48742E7DF18A0045C21B /* Build configuration list for PBXNativeTarget "AppTemplate" */;
+			buildConfigurationList = 25FE48742E7DF18A0045C21B /* Build configuration list for PBXNativeTarget "Luminary" */;
 			buildPhases = (
 				25FE48652E7DF1890045C21B /* Sources */,
 				25FE48662E7DF1890045C21B /* Frameworks */,
@@ -76,14 +76,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				25FE486B2E7DF1890045C21B /* AppTemplate */,
+				25FE486B2E7DF1890045C21B /* Luminary */,
 			);
-			name = AppTemplate;
+			name = Luminary;
 			packageProductDependencies = (
 				25EE788F2EAAC3AF00665C2C /* HomeLights */,
 			);
 			productName = AppTemplate;
-			productReference = 25FE48692E7DF1890045C21B /* AppTemplate.app */;
+			productReference = 25FE48692E7DF1890045C21B /* Luminary.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -101,7 +101,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 25FE48642E7DF1890045C21B /* Build configuration list for PBXProject "AppTemplate" */;
+			buildConfigurationList = 25FE48642E7DF1890045C21B /* Build configuration list for PBXProject "Luminary" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -117,7 +117,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				25FE48682E7DF1890045C21B /* AppTemplate */,
+				25FE48682E7DF1890045C21B /* Luminary */,
 			);
 		};
 /* End PBXProject section */
@@ -264,7 +264,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AppTemplate/AppTemplate.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Luminary/Luminary.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3Z68NFJBHS;
@@ -273,6 +273,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Luminary;
 				INFOPLIST_KEY_NSHomeKitUsageDescription = "Light control";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -311,7 +312,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AppTemplate/AppTemplate.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Luminary/Luminary.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3Z68NFJBHS;
@@ -320,6 +321,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Luminary;
 				INFOPLIST_KEY_NSHomeKitUsageDescription = "Light control";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -356,7 +358,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		25FE48642E7DF1890045C21B /* Build configuration list for PBXProject "AppTemplate" */ = {
+		25FE48642E7DF1890045C21B /* Build configuration list for PBXProject "Luminary" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				25FE48722E7DF18A0045C21B /* Debug */,
@@ -365,7 +367,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		25FE48742E7DF18A0045C21B /* Build configuration list for PBXNativeTarget "AppTemplate" */ = {
+		25FE48742E7DF18A0045C21B /* Build configuration list for PBXNativeTarget "Luminary" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				25FE48752E7DF18A0045C21B /* Debug */,
