@@ -12,7 +12,7 @@
 
 /* Begin PBXFileReference section */
 		25FE48692E7DF1890045C21B /* Luminary.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luminary.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CA9BA0C926AB2E1E0061168A /* spmtemplate */ = {isa = PBXFileReference; lastKnownFileType = folder; name = home-lights; path = ..; sourceTree = "<group>"; };
+		CA9BA0C926AB2E1E0061168A /* home-lights */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "home-lights"; path = ..; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -46,7 +46,7 @@
 			isa = PBXGroup;
 			children = (
 				25FE486B2E7DF1890045C21B /* Luminary */,
-				CA9BA0C926AB2E1E0061168A /* spmtemplate */,
+				CA9BA0C926AB2E1E0061168A /* home-lights */,
 				25EE788E2EAAC3AF00665C2C /* Frameworks */,
 				25FE486A2E7DF1890045C21B /* Products */,
 			);
