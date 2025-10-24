@@ -1,7 +1,8 @@
 import Foundation
 
 /// Primary interface for coordinating HomeLight scenes.
-public struct HomeLights {
+@Observable
+public class HomeLights {
   private let homeKitManager: HomeKitManager
 
   public init() {
@@ -15,6 +16,29 @@ public struct HomeLights {
       let devices = DiscoveredDevices(from: result)
       completion(devices)
     }
+  }
+
+  /// Sets the color of a specific light accessory
+  /// - Parameters:
+  ///   - accessoryName: The name of the light accessory
+  ///   - hue: Hue value (0-360)
+  ///   - saturation: Saturation value (0-100)
+  ///   - brightness: Brightness value (0-100)
+  ///   - completion: Called when the operation completes with success status
+  public func setLightColor(
+    accessoryName: String,
+    hue: Double,
+    saturation: Double,
+    brightness: Double,
+    completion: @escaping (Bool) -> Void
+  ) {
+    homeKitManager.setLightColor(
+      accessoryName: accessoryName,
+      hue: hue,
+      saturation: saturation,
+      brightness: brightness,
+      completion: completion
+    )
   }
 }
 

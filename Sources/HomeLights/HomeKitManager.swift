@@ -29,6 +29,101 @@ struct HomeKitManager: @unchecked Sendable {
     )
   }
 
+  /// Sets the color of a specific light accessory
+  /// - Parameters:
+  ///   - accessoryName: The name of the light accessory
+  ///   - hue: Hue value (0-360)
+  ///   - saturation: Saturation value (0-100)
+  ///   - brightness: Brightness value (0-100)
+  ///   - completion: Called when the operation completes with success status
+  func setLightColor(
+    accessoryName: String,
+    hue: Double,
+    saturation: Double,
+    brightness: Double,
+    completion: @escaping (Bool) -> Void
+  ) {
+    // Find the accessory across all homes
+    guard
+      let accessory = homeManager.homes.flatMap({ $0.accessories }).first(where: {
+        $0.name == accessoryName
+      })
+    else {
+      completion(false)
+      return
+    }
+
+    // Find the lightbulb service
+    guard
+      let lightService = accessory.services.first(where: {
+        $0.serviceType == HMServiceTypeLightbulb
+      })
+    else {
+      completion(false)
+      return
+    }
+
+    // Collect all write operations
+    var writeOperations: [() -> Void] = []
+    let dispatchGroup = DispatchGroup()
+    var hadError = false
+
+    // Set hue
+    if let hueChar = lightService.characteristics.first(where: {
+      $0.characteristicType == HMCharacteristicTypeHue
+    }) {
+      dispatchGroup.enter()
+      writeOperations.append {
+        hueChar.writeValue(NSNumber(value: hue)) { error in
+          if error != nil {
+            hadError = true
+          }
+          dispatchGroup.leave()
+        }
+      }
+    }
+
+    // Set saturation
+    if let satChar = lightService.characteristics.first(where: {
+      $0.characteristicType == HMCharacteristicTypeSaturation
+    }) {
+      dispatchGroup.enter()
+      writeOperations.append {
+        satChar.writeValue(NSNumber(value: saturation)) { error in
+          if error != nil {
+            hadError = true
+          }
+          dispatchGroup.leave()
+        }
+      }
+    }
+
+    // Set brightness
+    if let brightnessChar = lightService.characteristics.first(where: {
+      $0.characteristicType == HMCharacteristicTypeBrightness
+    }) {
+      dispatchGroup.enter()
+      writeOperations.append {
+        brightnessChar.writeValue(NSNumber(value: brightness)) { error in
+          if error != nil {
+            hadError = true
+          }
+          dispatchGroup.leave()
+        }
+      }
+    }
+
+    // Execute all write operations
+    for operation in writeOperations {
+      operation()
+    }
+
+    // Wait for all operations to complete
+    dispatchGroup.notify(queue: .main) {
+      completion(!hadError)
+    }
+  }
+
   /// Result of HomeKit discovery
   struct DiscoveryResult {
     let homes: [HomeInfo]

@@ -10,6 +10,8 @@ struct LightCanvasView: View {
   @State private var canvasSize: CGSize = .zero
   @State private var selectedShow: (any LightShow)?
   @State private var showControlPanel = true
+  @State private var expectedColors: [String: HSBColor] = [:]  // Track expected colors for preview
+  @State private var currentTask: Task<Void, Never>?
 
   @Environment(LightShowRegistry.self) private var lightShowRegistry
   @Environment(HomeLights.self) private var homeLights
@@ -78,6 +80,7 @@ struct LightCanvasView: View {
                         y: geometry.size.height / 2
                       ),
                     canvasSize: canvasSize,
+                    expectedColor: expectedColors[lightName],
                     onPositionChange: { newPosition in
                       lightPositions[lightName] = newPosition
                       savePositions()
@@ -106,6 +109,7 @@ struct LightCanvasView: View {
 
         LightShowControlPanel(
           selectedShow: $selectedShow,
+          lightPositions: getLightsWithPositions(),
           onApply: applyLightShow
         )
         .frame(width: 300)
@@ -114,6 +118,15 @@ struct LightCanvasView: View {
     }
     .navigationTitle("\(home.name) Canvas")
     .toolbar {
+      ToolbarItem(placement: .automatic) {
+        Button(action: syncWithHomeKit) {
+          HStack {
+            Image(systemName: "arrow.triangle.2.circlepath")
+            Text("Sync")
+          }
+        }
+      }
+
       ToolbarItem(placement: .primaryAction) {
         Button(action: { showControlPanel.toggle() }) {
           Image(systemName: showControlPanel ? "sidebar.right" : "sidebar.right.filled")
@@ -124,10 +137,20 @@ struct LightCanvasView: View {
       setupStorage()
       loadPositions()
     }
+    .onDisappear {
+      stopShow()
+    }
   }
 
   private var availableLights: [DiscoveredDevices.Accessory] {
     allLights.filter { !selectedLights.contains($0.name) }
+  }
+
+  private func getLightsWithPositions() -> [(name: String, position: CGPoint)] {
+    selectedLights.compactMap { lightName -> (String, CGPoint)? in
+      guard let position = lightPositions[lightName] else { return nil }
+      return (lightName, position)
+    }
   }
 
   private func addLight(_ light: DiscoveredDevices.Accessory) {
@@ -182,36 +205,45 @@ struct LightCanvasView: View {
     }
   }
 
+  private func syncWithHomeKit() {
+    // Clear expected colors to show actual HomeKit colors
+    expectedColors.removeAll()
+  }
+
+  private func stopShow() {
+    currentTask?.cancel()
+    currentTask = nil
+  }
+
   private func applyLightShow() {
     guard let show = selectedShow else { return }
 
-    // Apply the light show to all selected lights
-    for lightName in selectedLights {
-      guard let position = lightPositions[lightName] else { continue }
+    // Stop any running show
+    stopShow()
 
-      // Get color from the show for this light
-      if let hsbColor = show.color(for: lightName, at: position, time: 0) {
-        // Apply color to actual HomeKit light
-        homeLights.setLightColor(
-          accessoryName: lightName,
-          hue: hsbColor.hue,
-          saturation: hsbColor.saturation,
-          brightness: hsbColor.brightness
-        ) { success in
-          if success {
-            print("Successfully set color for \(lightName)")
-          } else {
-            print("Failed to set color for \(lightName)")
-          }
+    // Get lights with positions
+    let lights = getLightsWithPositions()
+    guard !lights.isEmpty else { return }
+
+    // Apply the show using the protocol method
+    currentTask = show.apply(
+      to: lights,
+      using: homeLights,
+      onColorUpdate: { [self] lightName, color in
+        Task { @MainActor in
+          self.expectedColors[lightName] = color
         }
       }
-    }
+    )
   }
 }
 
 struct LightShowControlPanel: View {
   @Binding var selectedShow: (any LightShow)?
+  let lightPositions: [(name: String, position: CGPoint)]
   let onApply: () -> Void
+
+  @State private var showSequenceExpanded = false
 
   @Environment(LightShowRegistry.self) private var registry
 
@@ -240,6 +272,7 @@ struct LightShowControlPanel: View {
               isSelected: selectedShow?.id == show.id,
               onSelect: {
                 selectedShow = show
+                showSequenceExpanded = false  // Reset when changing shows
               }
             )
           }
@@ -257,16 +290,44 @@ struct LightShowControlPanel: View {
 
           show.configurationView()
 
+          // Show sequence preview for sequenced shows
+          if let sequencedShow = show as? SequencedLightShow, !lightPositions.isEmpty {
+            DisclosureGroup(
+              isExpanded: $showSequenceExpanded,
+              content: {
+                LightSequenceList(
+                  sequence: sequencedShow.getSequence(for: lightPositions)
+                )
+              },
+              label: {
+                HStack {
+                  Image(systemName: "list.number")
+                  Text("Light Order")
+                  Spacer()
+                  Text("\(lightPositions.count)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+              }
+            )
+            .padding(.vertical, 4)
+          }
+
           Spacer()
 
           Button(action: onApply) {
             HStack {
               Image(systemName: "play.fill")
-              Text("Apply Light Show")
+              if show is WaveColorShow {
+                Text("Start Wave")
+              } else {
+                Text("Apply Light Show")
+              }
             }
             .frame(maxWidth: .infinity)
           }
           .buttonStyle(.borderedProminent)
+          .disabled(lightPositions.isEmpty)
         }
         .padding()
       } else {
@@ -280,6 +341,47 @@ struct LightShowControlPanel: View {
         .frame(maxHeight: 200)
       }
     }
+  }
+}
+
+// MARK: - Light Sequence List (Inline)
+
+struct LightSequenceList: View {
+  let sequence: [String]
+
+  var body: some View {
+    VStack(spacing: 8) {
+      ForEach(Array(sequence.enumerated()), id: \.element) { index, lightName in
+        HStack(spacing: 12) {
+          // Order number
+          ZStack {
+            Circle()
+              .fill(Color.accentColor)
+              .frame(width: 24, height: 24)
+
+            Text("\(index + 1)")
+              .font(.caption2)
+              .fontWeight(.bold)
+              .foregroundColor(.white)
+          }
+
+          // Light name
+          HStack {
+            Image(systemName: "lightbulb.fill")
+              .font(.caption)
+              .foregroundColor(.yellow)
+
+            Text(lightName)
+              .font(.caption)
+              .lineLimit(1)
+
+            Spacer()
+          }
+        }
+        .padding(.vertical, 4)
+      }
+    }
+    .padding(.top, 8)
   }
 }
 
@@ -343,6 +445,7 @@ struct DraggableLightView: View {
   let light: DiscoveredDevices.Accessory
   let position: CGPoint
   let canvasSize: CGSize
+  let expectedColor: HSBColor?  // Preview color for light shows
   let onPositionChange: (CGPoint) -> Void
   let onRemove: () -> Void
 
@@ -352,18 +455,31 @@ struct DraggableLightView: View {
   private let lightWidth: CGFloat = 80
   private let lightHeight: CGFloat = 100
 
+  // Use expected color if available, otherwise use actual HomeKit color
+  private var displayColor: Color {
+    if let expected = expectedColor {
+      return Color(
+        hue: expected.hue / 360.0,
+        saturation: expected.saturation / 100.0,
+        brightness: expected.brightness / 100.0
+      )
+    }
+    return light.displayColor
+  }
+
   var body: some View {
     VStack(spacing: 8) {
       ZStack(alignment: .topTrailing) {
         Circle()
-          .fill(light.displayColor)
+          .fill(displayColor)
           .frame(width: 60, height: 60)
-          .shadow(color: light.displayColor.opacity(0.5), radius: 10)
+          .shadow(color: displayColor.opacity(0.5), radius: 10)
           .overlay(
             Image(systemName: "lightbulb.fill")
               .font(.title2)
               .foregroundColor(.white)
           )
+          .animation(.easeInOut(duration: 0.3), value: displayColor)
 
         Button(action: onRemove) {
           Image(systemName: "xmark.circle.fill")
