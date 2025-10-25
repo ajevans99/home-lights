@@ -17,12 +17,15 @@ class LightShowRegistry {
       WaveColorShow(),
       RainbowWaveShow(),
       ColorPulseShow(),
+  NeonPartyShow(),
       GradientFlowShow(),
       StrobeShow(),
+  BassDropShow(),
       TwinkleShow(),
       FireEffectShow(),
       OceanWavesShow(),
       SnakeShow(),
+      HauntedSpiritsShow(),
       SoundReactiveShow(),
     ]
   }
