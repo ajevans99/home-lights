@@ -13,6 +13,7 @@ class LightShowRegistry {
   private func registerDefaultShows() {
     availableShows = [
       SolidColorShow(),
+      AlternatingColorsShow(),
       WaveColorShow(),
       RainbowWaveShow(),
       ColorPulseShow(),
@@ -21,6 +22,8 @@ class LightShowRegistry {
       TwinkleShow(),
       FireEffectShow(),
       OceanWavesShow(),
+      SnakeShow(),
+      SoundReactiveShow(),
     ]
   }
 

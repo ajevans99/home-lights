@@ -26,15 +26,21 @@ class SolidColorShow: LightShow {
     Task {
       let hsbColor = HSBColor(from: selectedColor)
 
+      var writes: [(name: String, task: Task<Bool, Never>)] = []
       for (lightName, _) in lights {
         onColorUpdate(lightName, hsbColor)
-
-        let success = await controller.setLightColor(
+        let task = controller.setLightColor(
           accessoryName: lightName,
           hue: hsbColor.hue,
           saturation: hsbColor.saturation,
           brightness: hsbColor.brightness
         )
+
+        writes.append((lightName, task))
+      }
+
+      for (lightName, task) in writes {
+        let success = await task.value
 
         if success {
           print("Successfully set color for \(lightName)")

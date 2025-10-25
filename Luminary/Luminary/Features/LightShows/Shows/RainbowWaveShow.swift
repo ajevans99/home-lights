@@ -50,7 +50,7 @@ class RainbowWaveShow: LightShow, SequencedLightShow {
           let color = rainbowColors[colorIndex]
 
           onColorUpdate(lightName, color)
-          let success = await controller.setLightColor(
+          let success = await controller.setLightColorAndWait(
             accessoryName: lightName,
             hue: color.hue,
             saturation: color.saturation,

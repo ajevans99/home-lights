@@ -35,8 +35,10 @@ import Foundation
 /// Each accessory has its own independent queue, so debouncing one light doesn't affect others:
 /// ```swift
 /// // These don't interfere with each other
-/// await queue.queueWrite(accessoryName: "Living Room", ...)  // Independent queue
-/// await queue.queueWrite(accessoryName: "Bedroom", ...)      // Independent queue
+/// let livingRoomWrite = await queue.queueWrite(accessoryName: "Living Room", ...)
+/// let bedroomWrite = await queue.queueWrite(accessoryName: "Bedroom", ...)
+/// _ = await livingRoomWrite.value
+/// _ = await bedroomWrite.value
 /// ```
 ///
 /// ## Performance Characteristics
@@ -76,29 +78,24 @@ actor LightWriteQueue {
   ///   - saturation: Saturation value (0-100)
   ///   - brightness: Brightness value (0-100)
   ///   - execute: The actual write operation to perform after debouncing
-  /// - Returns: True if the write succeeded, false if cancelled or failed
+  /// - Returns: A task that completes with the write result once the debounce interval elapses
   func queueWrite(
     accessoryName: String,
     hue: Double,
     saturation: Double,
     brightness: Double,
-    execute: @escaping (Double, Double, Double) async -> Bool
-  ) async -> Bool {
+    execute: @escaping @Sendable (Double, Double, Double) async -> Bool
+  ) -> Task<Bool, Never> {
     // Cancel any existing pending write for this accessory
     if let existing = pendingWrites[accessoryName] {
       existing.task.cancel()
     }
 
     // Create a new debounced task
-    let task = Task {
+    let task = Task<Bool, Never> {
       do {
-        // Wait for the debounce interval
         try await Task.sleep(for: debounceInterval)
-        
-        // If cancelled during sleep, return false
         guard !Task.isCancelled else { return false }
-        
-        // Execute the actual HomeKit write
         return await execute(hue, saturation, brightness)
       } catch {
         return false
@@ -113,14 +110,13 @@ actor LightWriteQueue {
       task: task
     )
 
-    let result = await task.value
-
-    // Clean up completed task if it's still the current one
-    if pendingWrites[accessoryName]?.task == task {
-      pendingWrites.removeValue(forKey: accessoryName)
+    Task { [weak self] in
+      guard let self else { return }
+      _ = await task.value
+      await self.cleanup(accessoryName: accessoryName, task: task)
     }
 
-    return result
+    return task
   }
 
   /// Cancel all pending writes across all accessories.
@@ -143,6 +139,12 @@ actor LightWriteQueue {
   func cancel(accessoryName: String) {
     if let pending = pendingWrites[accessoryName] {
       pending.task.cancel()
+      pendingWrites.removeValue(forKey: accessoryName)
+    }
+  }
+
+  private func cleanup(accessoryName: String, task: Task<Bool, Never>) {
+    if pendingWrites[accessoryName]?.task == task {
       pendingWrites.removeValue(forKey: accessoryName)
     }
   }

@@ -44,7 +44,7 @@ struct ContentView: View {
 
     Task {
       let discoveredDevices = await homeLights.discoverAccessories()
-      
+
       await MainActor.run {
         self.devices = discoveredDevices
         self.isDiscovering = false

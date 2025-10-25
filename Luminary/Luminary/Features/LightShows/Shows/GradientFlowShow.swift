@@ -81,7 +81,7 @@ class GradientFlowShow: LightShow {
             let color = interpolateColor(from: startHSB, to: endHSB, t: t)
 
             onColorUpdate(lightName, color)
-            _ = await controller.setLightColor(
+            controller.setLightColor(
               accessoryName: lightName,
               hue: color.hue,
               saturation: color.saturation,

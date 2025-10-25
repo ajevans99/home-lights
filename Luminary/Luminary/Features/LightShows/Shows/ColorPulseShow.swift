@@ -30,28 +30,40 @@ class ColorPulseShow: LightShow {
 
       while !Task.isCancelled {
         // Pulse up
+        var pulseUpWrites: [Task<Bool, Never>] = []
         for (lightName, _) in lights {
           onColorUpdate(lightName, color)
-          _ = await controller.setLightColor(
+          let task = controller.setLightColor(
             accessoryName: lightName,
             hue: color.hue,
             saturation: color.saturation,
             brightness: color.brightness
           )
+          pulseUpWrites.append(task)
+        }
+
+        for task in pulseUpWrites {
+          _ = await task.value
         }
 
         try? await Task.sleep(for: .seconds(speed / 2))
         guard !Task.isCancelled else { break }
 
         // Pulse down
+        var pulseDownWrites: [Task<Bool, Never>] = []
         for (lightName, _) in lights {
           onColorUpdate(lightName, dimColor)
-          _ = await controller.setLightColor(
+          let task = controller.setLightColor(
             accessoryName: lightName,
             hue: dimColor.hue,
             saturation: dimColor.saturation,
             brightness: dimColor.brightness
           )
+          pulseDownWrites.append(task)
+        }
+
+        for task in pulseDownWrites {
+          _ = await task.value
         }
 
         try? await Task.sleep(for: .seconds(speed / 2))

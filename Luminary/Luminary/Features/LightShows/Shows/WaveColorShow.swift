@@ -38,14 +38,20 @@ class WaveColorShow: LightShow, SequencedLightShow {
       let waveHSB = HSBColor(from: waveColor)
 
       // Set all lights to rest color initially
+      var initialWrites: [Task<Bool, Never>] = []
       for lightName in sequence {
         onColorUpdate(lightName, restHSB)
-        _ = await controller.setLightColor(
+        let task = controller.setLightColor(
           accessoryName: lightName,
           hue: restHSB.hue,
           saturation: restHSB.saturation,
           brightness: restHSB.brightness
         )
+        initialWrites.append(task)
+      }
+
+      for task in initialWrites {
+        _ = await task.value
       }
 
       try? await Task.sleep(for: .seconds(0.5))
@@ -55,7 +61,7 @@ class WaveColorShow: LightShow, SequencedLightShow {
         guard !Task.isCancelled else { break }
 
         onColorUpdate(lightName, waveHSB)
-        let success = await controller.setLightColor(
+        let success = await controller.setLightColorAndWait(
           accessoryName: lightName,
           hue: waveHSB.hue,
           saturation: waveHSB.saturation,
@@ -69,7 +75,7 @@ class WaveColorShow: LightShow, SequencedLightShow {
 
         guard !Task.isCancelled else { break }
         onColorUpdate(lightName, restHSB)
-        _ = await controller.setLightColor(
+        _ = await controller.setLightColorAndWait(
           accessoryName: lightName,
           hue: restHSB.hue,
           saturation: restHSB.saturation,

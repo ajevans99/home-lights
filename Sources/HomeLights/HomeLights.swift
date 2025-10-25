@@ -26,19 +26,35 @@ public class HomeLights {
   ///   - hue: Hue value (0-360)
   ///   - saturation: Saturation value (0-100)
   ///   - brightness: Brightness value (0-100)
-  /// - Returns: True if the operation succeeded, false otherwise
+  /// - Returns: A task that completes with the write result
+  @discardableResult
   public func setLightColor(
     accessoryName: String,
     hue: Double,
     saturation: Double,
     brightness: Double
-  ) async -> Bool {
-    await homeKitManager.setLightColor(
+  ) -> Task<Bool, Never> {
+    homeKitManager.setLightColor(
       accessoryName: accessoryName,
       hue: hue,
       saturation: saturation,
       brightness: brightness
     )
+  }
+
+  /// Convenience API that suspends until the write finishes.
+  public func setLightColorAndWait(
+    accessoryName: String,
+    hue: Double,
+    saturation: Double,
+    brightness: Double
+  ) async -> Bool {
+    await setLightColor(
+      accessoryName: accessoryName,
+      hue: hue,
+      saturation: saturation,
+      brightness: brightness
+    ).value
   }
 
   /// Cancel all pending light color writes across all accessories.

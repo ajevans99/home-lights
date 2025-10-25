@@ -36,28 +36,40 @@ class StrobeShow: LightShow {
 
       while !Task.isCancelled {
         // Flash on
+        var flashOnWrites: [Task<Bool, Never>] = []
         for (lightName, _) in lights {
           onColorUpdate(lightName, onColor)
-          _ = await controller.setLightColor(
+          let task = controller.setLightColor(
             accessoryName: lightName,
             hue: onColor.hue,
             saturation: onColor.saturation,
             brightness: onColor.brightness
           )
+          flashOnWrites.append(task)
+        }
+
+        for task in flashOnWrites {
+          _ = await task.value
         }
 
         try? await Task.sleep(for: .seconds(speed / 4))
         guard !Task.isCancelled else { break }
 
         // Flash off
+        var flashOffWrites: [Task<Bool, Never>] = []
         for (lightName, _) in lights {
           onColorUpdate(lightName, offColor)
-          _ = await controller.setLightColor(
+          let task = controller.setLightColor(
             accessoryName: lightName,
             hue: offColor.hue,
             saturation: offColor.saturation,
             brightness: offColor.brightness
           )
+          flashOffWrites.append(task)
+        }
+
+        for task in flashOffWrites {
+          _ = await task.value
         }
 
         try? await Task.sleep(for: .seconds(speed))

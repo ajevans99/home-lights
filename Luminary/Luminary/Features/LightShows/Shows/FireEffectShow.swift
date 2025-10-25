@@ -36,7 +36,7 @@ class FireEffectShow: LightShow {
           let color = HSBColor(hue: hue, saturation: saturation, brightness: brightness)
 
           onColorUpdate(lightName, color)
-          _ = await controller.setLightColor(
+          controller.setLightColor(
             accessoryName: lightName,
             hue: color.hue,
             saturation: color.saturation,

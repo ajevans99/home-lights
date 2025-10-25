@@ -30,14 +30,20 @@ class TwinkleShow: LightShow {
       let twinkleHSB = HSBColor(from: twinkleColor)
 
       // Set all to base color initially
+      var initialWrites: [Task<Bool, Never>] = []
       for (lightName, _) in lights {
         onColorUpdate(lightName, baseHSB)
-        _ = await controller.setLightColor(
+        let task = controller.setLightColor(
           accessoryName: lightName,
           hue: baseHSB.hue,
           saturation: baseHSB.saturation,
           brightness: baseHSB.brightness
         )
+        initialWrites.append(task)
+      }
+
+      for task in initialWrites {
+        _ = await task.value
       }
 
       try? await Task.sleep(for: .seconds(0.5))
@@ -50,7 +56,7 @@ class TwinkleShow: LightShow {
           if Double.random(in: 0...1) < frequency {
             // Twinkle this light
             onColorUpdate(lightName, twinkleHSB)
-            _ = await controller.setLightColor(
+            controller.setLightColor(
               accessoryName: lightName,
               hue: twinkleHSB.hue,
               saturation: twinkleHSB.saturation,
@@ -61,7 +67,7 @@ class TwinkleShow: LightShow {
             Task {
               try? await Task.sleep(for: .seconds(0.2))
               onColorUpdate(lightName, baseHSB)
-              _ = await controller.setLightColor(
+              _ = await controller.setLightColorAndWait(
                 accessoryName: lightName,
                 hue: baseHSB.hue,
                 saturation: baseHSB.saturation,

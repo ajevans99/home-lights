@@ -46,10 +46,11 @@ struct HomeKitManager: @unchecked Sendable {
   /// Example usage with a color picker:
   /// ```swift
   /// // These rapid calls will be debounced - only the last color is sent
-  /// await manager.setLightColor(accessoryName: "Bedroom", hue: 0, saturation: 100, brightness: 100)
-  /// await manager.setLightColor(accessoryName: "Bedroom", hue: 60, saturation: 100, brightness: 100)
-  /// await manager.setLightColor(accessoryName: "Bedroom", hue: 120, saturation: 100, brightness: 100)
-  /// // Only hue: 120 will be sent after the debounce interval
+  /// let first = manager.setLightColor(accessoryName: "Bedroom", hue: 0, saturation: 100, brightness: 100)
+  /// let second = manager.setLightColor(accessoryName: "Bedroom", hue: 60, saturation: 100, brightness: 100)
+  /// let latest = manager.setLightColor(accessoryName: "Bedroom", hue: 120, saturation: 100, brightness: 100)
+  /// // Only `latest` will resolve after the debounce interval
+  /// _ = await latest.value
   /// ```
   ///
   /// - Parameters:
@@ -57,26 +58,30 @@ struct HomeKitManager: @unchecked Sendable {
   ///   - hue: Hue value (0-360)
   ///   - saturation: Saturation value (0-100)
   ///   - brightness: Brightness value (0-100)
-  /// - Returns: True if the operation succeeded, false otherwise
+  /// - Returns: A task that resolves with the final write result
   func setLightColor(
     accessoryName: String,
     hue: Double,
     saturation: Double,
     brightness: Double
-  ) async -> Bool {
-    await writeQueue.queueWrite(
-      accessoryName: accessoryName,
-      hue: hue,
-      saturation: saturation,
-      brightness: brightness
-    ) { [homeManager] hue, saturation, brightness in
-      await self.performLightColorWrite(
-        homeManager: homeManager,
+  ) -> Task<Bool, Never> {
+    Task {
+      let queuedTask = await writeQueue.queueWrite(
         accessoryName: accessoryName,
         hue: hue,
         saturation: saturation,
         brightness: brightness
-      )
+      ) { [homeManager] hue, saturation, brightness in
+        await self.performLightColorWrite(
+          homeManager: homeManager,
+          accessoryName: accessoryName,
+          hue: hue,
+          saturation: saturation,
+          brightness: brightness
+        )
+      }
+
+      return await queuedTask.value
     }
   }
 
@@ -126,7 +131,7 @@ struct HomeKitManager: @unchecked Sendable {
 
     // Write all characteristics simultaneously using async/await
     // HomeKit will batch them together when written concurrently
-    await withTaskGroup(of: Error?.self) { group in
+    _ = await withTaskGroup(of: Error?.self) { group in
       if let hueChar = hueChar {
         group.addTask {
           await withCheckedContinuation { continuation in
